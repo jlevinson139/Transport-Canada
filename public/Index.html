@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+        <script src="https://malsup.github.io/jquery.form.js"></script> 
+    </head>
+    <script>
+     $(document).ready(function() { 
+        $('#MRNLoaded' ).hide();
+        $('#CATLoaded' ).hide();
+        $('#NOTLoaded' ).hide();
+        $('#SYSLoaded' ).hide();
+        $('#loadingDiv').hide()  // Hide it initially
+        $('#uploader').ajaxForm({
+            url : '/uploaddata', // or whatever
+            dataType : 'json',
+            success : function (response) {
+               
+                if (response.status == 'success'){
+                    $('#' + response.type + 'Loaded' ).show();
+                    if(response.type == 'MRN'){
+                        $('#uploadertext').html('Please upload MANUFACTURER_RECALL_NO_TXT JSON FILE information');
+                        $('#uploadtype').attr('name',response.type);
+                        $('#myFile').attr('value',response.type);
+                    }else if(response.type == 'CAT'){
+                        $('#uploadertext').html('Please upload CATEGORY_ETXT JSON FILE information');
+                        $('#uploadtype').attr('name',response.type);
+                        $('#myFile').attr('value',response.type);
+                    }else if(response.type == 'SYS'){
+                        $('#uploadertext').html('Please upload SYSTEM_TYPE_ETXT JSON FILE information');
+                        $('#uploadtype').attr('name',response.type);
+                        $('#myFile').attr('value',response.type);
+                    }else {
+
+                    }
+                }
+                $("#myFile").replaceWith($("#myFile").val('').clone(true));
+                $('#loadingDiv').hide()
+            }
+        });
+
+        $( ".download" ).click(function() {
+            $.ajax({
+            url: "/download",
+            data: { 
+                submitButton:this.id
+            },
+            type: 'GET',
+            dataType: 'json', // added data type
+            success: function(res) {
+                var json = JSON.stringify(res);
+                var blob = new Blob([json]);
+                var url = URL.createObjectURL( blob );
+                var link = document.createElement( 'a' );
+                link.setAttribute( 'href', url );
+                link.setAttribute( 'download', 'data.json' );
+                var event = document.createEvent( 'MouseEvents' );
+                event.initMouseEvent( 'click', true, true, window, 1, 0, 0, 0, 0, false, false, false, false, 0, null);
+                link.dispatchEvent( event );
+                }
+             });
+        })
+        $( ".searchclick" ).click(function() {
+            $.ajax({
+            url: "/search",
+            data: { 
+                submitButton:this.id,
+                search: $('.Searchtxt').val()
+            },
+            type: 'GET',
+            dataType: 'json', // added data type
+            success: function(res) {
+                var table =''
+                if(res.json.length > 0) {
+                     table = rendertable(res.json);
+                }else{
+                    alert("No search results available");
+                }
+                
+               
+                $('#' + res.type + '_Display').html(table);
+            }
+            });
+        })
+
+
+        $( ".showAll" ).click(function() {
+            $.ajax({
+            url: "/getallinfo",
+            data: { 
+                submitButton:this.id
+            },
+            type: 'GET',
+            dataType: 'json', // added data type
+            success: function(res) {
+                var table = rendertable(res.json);
+               
+                $('#' + res.type + '_Display').html(table);
+             }
+            })
+        })
+        function rendertable(json){
+            var table ='' 
+            var rows =''
+            var headers ='<tr>'
+
+            for (var key of Object.keys(json[0])) {
+                headers += '<th>' + key+ '</th>'
+            }
+            /*
+            $.each(Object.keys(json[0]),function(i){
+                headers += '<th>' + i + '</th>'
+            });
+            */
+            headers +='</tr>'
+            for (var item of json) {
+                rows += '<tr>'
+                for (const [key, value] of Object.entries(item)) {
+                    rows += '<td>' + value + '</td>'
+                }
+                rows += '</tr>'
+            }
+            table = headers + rows
+            return table
+        }
+
+
+        $( "#upload" ).click(function() {
+            $('#loadingDiv').show()
+        })
+        
+
+    });
+    </script>
+<body>
+    <h1>Vechile Recall API Interface</h1>
+    <form id="uploader" action="/uploaddata" method="post">
+        <h3 id="uploadertext">Please upload initial Recall information</h3>
+        <input type="file" id="myFile" name='file' value="recall" accept=".json">
+        <input id="uploadtype" type="hidden" name='recall'> 
+        <input id= "upload" type="submit"></input>
+    </form>
+    <div id="MRNLoaded"> 
+        
+        <h3>MANUFACTURER_RECALL_NO_TXT Information Ready</h3>
+        <div><p>Download</p><input class="download" id="MRN" type ='button' value="Download"></input></div>
+        <div><p>Show All</p><input class="showAll" id="MRN" type ='button' value="Show All"></div>
+        <div><p>Search</p><input class="Searchtxt" id="MRN" type ='textbox' placeholder="SEARCH BY MANUFACTURER_RECALL_NO_TXT"><input class="searchclick" id="MRN" type ='button' value="search"></div>
+        <div id="Display_MRN" class ="display"><table id ="MRN_Display"></table></div>
+    </div>
+    <div id="CATLoaded"> 
+        
+        <h3>CATEGORY_ETXT/CATEGORY_FTXT Information Ready</h3>
+        <div><p>Download</p><input class="download" id="CAT" type ='button' value="Download"></input></div>
+        <div><p>Show All</p><input class="showAll" id="CAT" type ='button' value="Show All"></div>
+        <div><p>Search</p><input class="Searchtxt" id="CAT" type ='textbox' placeholder="CATEGORY_ETXT/CATEGORY_FTXT"><input class="searchclick" id="CAT" type ='button' value="search"></div>
+        <div id="Display_CAT" class ="display"><table id ="CAT_Display"></table></div>
+    </div>
+    <div id="SYSLoaded"> 
+        
+        <h3>SYSTEM_TYPE_ETXT/SYSTEM_TYPE_FTXT Information Ready</h3>
+        <div><p>Download</p><input class="download" id="SYS" type ='button' value="Download"></input></div>
+        <div><p>Show All</p><input class="showAll" id="SYS" type ='button' value="Show All"></div>
+        <div><p>Search</p><input class="Searchtxt" id="SYS" type ='textbox' placeholder="SYSTEM_TYPE_ETXT/SYSTEM_TYPE_FTXT"><input class="searchclick" id="SYS" type ='button' value="search"></div>
+        <div id="Display_SYS" class ="display"><table id ="SYS_Display"></table></div>
+    </div>
+    <div id="NOTLoaded"> 
+       
+        <h3>NOTIFICATION_TYPE_ETXT/NOTIFICATION_TYPE_FTXT Information Ready</h3>
+        <div><p>Download</p><input class="download" id="NOT" type ='button' value="Download"></input></div>
+        <div><p>Show All</p><input class="showAll" id="NOT" type ='button' value="Show All"></div>
+        <div><p>Search</p><input class="Searchtxt" id="NOT" type ='textbox' placeholder="NOTIFICATION_TYPE_ETXT/NOTIFICATION_TYPE_FTXT"><input class="searchclick" id="NOT" type ='button' value="search"></div>
+        <div id="Display_NOT" class ="display"><table id ="NOT_Display"></table></div>
+    </div>
+    <div id ="loadingDiv"><h3>LOADING ....</h3></div>
+</body>
+
+</html>
+
